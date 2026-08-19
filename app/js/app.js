@@ -265,6 +265,7 @@
   var saveTimer = null;
   var lastSavedAt = 0;
   var lastCompressionSnapshot = null;
+  var printFitRequested = false;
   var BUILD_ID = "2025-08-19-compress-fix";
 
   function saveState(force) {
@@ -763,6 +764,11 @@
     return page ? page.scrollHeight : 0;
   }
 
+  function printablePageHeight() {
+    /* A4 297mm，打印边距 12mm + 12mm，按 96dpi 换算成可用像素高度 */
+    return Math.floor((297 - 24) * 96 / 25.4);
+  }
+
   function restoreCompressedResume() {
     if (!lastCompressionSnapshot) {
       toast("当前没有可恢复的压缩前版本", "err");
@@ -783,6 +789,7 @@
 
   function compressResumeToOnePage() {
     var original = cloneJSON(state.resume);
+    printFitRequested = true;
     var variantBefore = state.variant;
     var compactBefore = !!state.compactMode;
     var candidates = [];
@@ -827,7 +834,16 @@
     state.variant = state.variant === "detailed" ? "targeted" : state.variant;
     state.compactMode = false;
     renderAllPreviews();
-    var targetHeight = 1123;
+    var targetHeight = printablePageHeight();
+    var heightBefore = previewPageHeight();
+    if (heightBefore <= targetHeight) {
+      state.compactMode = true;
+      renderAllPreviews();
+      saveState(true);
+      openModal("压缩结果", '<div style="font-size:13px;color:var(--text-2)">当前内容按正文高度已经接近一页，已启用紧凑版式后再打印。</div>');
+      toast("已启用紧凑版式，请再导出 PDF", "ok");
+      return true;
+    }
 
     for (var i = 0; i < candidates.length && previewPageHeight() > targetHeight; i++) {
       var c = candidates[i];
@@ -868,11 +884,13 @@
     }
 
     if (previewPageHeight() > targetHeight) {
+      var failedSummary = Array.from(new Set(changes)).slice(0, 5);
       state.resume = original;
       state.variant = variantBefore;
       state.compactMode = compactBefore;
       renderAllPreviews();
       toast("当前内容较多，自动压缩与紧凑版式后仍未完全压到一页；建议再手动删减低优先级内容", "err");
+      openModal("压缩结果", '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">这次尝试了自动压缩，但仍未完全压到一页。你可以先看系统已经尝试过的调整：</div><ul style="margin:0;padding-left:18px;line-height:1.8">' + (failedSummary.length ? failedSummary.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join('') : '<li>本次没有找到可继续自动删减的安全内容</li>') + '</ul><div style="margin-top:10px;font-size:12px;color:var(--text-2)">由于压缩没有成功应用，所以当前内容已经自动恢复到压缩前状态。</div>');
       return false;
     }
     lastCompressionSnapshot = { resume: cloneJSON(original), variant: variantBefore, compactMode: compactBefore };
@@ -1486,7 +1504,13 @@
 
   function showPrintTips() {
     confirmModal("打印前小提示", "如果打印预览顶部出现时间、标题或网址，那是浏览器默认的页眉页脚，不是简历内容。请在打印设置里关闭“页眉和页脚”后再导出 PDF。", function () {
+      printFitRequested = printFitRequested || !!state.compactMode;
+      document.body.classList.toggle("print-fit-requested", printFitRequested);
       window.print();
+      setTimeout(function () {
+        printFitRequested = false;
+        document.body.classList.remove("print-fit-requested");
+      }, 1200);
     });
   }
 

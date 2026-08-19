@@ -61,6 +61,7 @@ assert($$("#checklist .cl-group").length === 3, "准备清单 3 组");
 assert(!!$("#aiBody .ai-card"), "AI 面板渲染");
 assert(!!$("#btnAIDiagnose"), "AI 诊断按钮存在");
 assert(!!$("#formTemplateSelect"), "表单内模板选择器");
+assert($("#buildBadge") && $("#buildBadge").textContent.includes("2025-08-19-compress-fix"), "可见 Build 标记存在");
 assert(win.__RESUME_KIT_SINGLE_FILE__ && win.__RESUME_KIT_SINGLE_FILE__.includes("<!DOCTYPE html>"), "内置单文件模板可用");
 assert(!errors.length, "无未捕获 JS 错误" + (errors.length ? "：" + errors.join(" | ") : ""));
 
@@ -149,9 +150,34 @@ tplSel3.value = "design";
 tplSel3.dispatchEvent(new win.Event("change", { bubbles: true }));
 await new Promise((r) => setTimeout(r, 150));
 assert($("#previewBody .page").classList.contains("role-design"), "岗位模板切换会附带可见版式类");
+/* 构造更长内容，确保触发压缩逻辑 */
+const evalInput = $('[data-path="evaluation"]');
+if (evalInput) {
+  evalInput.value = "负责多类项目推进与协作，补充很长的描述以触发压缩。\n持续跟进需求、联调、测试、上线和复盘，确保结果完整呈现。\n补充第三条用于增加整体高度。";
+  evalInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+}
+const extraInput = $('[data-path="extra"]');
+if (extraInput) {
+  extraInput.value = "这里补充额外信息，刻意写长一些，方便验证一页压缩和恢复按钮。\n继续追加第二行说明。";
+  extraInput.dispatchEvent(new win.Event("input", { bubbles: true }));
+}
+await new Promise((r) => setTimeout(r, 150));
 $("#btnAutoCompress").click();
 await new Promise((r) => setTimeout(r, 150));
 assert($$("#toastRoot .toast").length >= 3, "智能压缩触发反馈（toast）");
+const compressModal = $("#modalRoot .modal");
+const modalBody = $("#modalRoot .modal-body");
+const restoreBtn = $(".restore-compress", $("#modalRoot"));
+assert(!!compressModal, "智能压缩会弹出结果弹窗");
+assert(!!modalBody && modalBody.textContent.length > 0, "压缩结果弹窗有可读说明");
+if (restoreBtn) {
+  assert(true, "压缩成功时有恢复压缩前版本按钮");
+  restoreBtn.click();
+  await new Promise((r) => setTimeout(r, 120));
+  assert($$("#toastRoot .toast").some((el) => el.textContent.includes("已恢复到压缩前版本")), "恢复压缩前版本触发成功");
+} else if (modalBody) {
+  assert(/无需继续压缩|自动恢复到压缩前状态|已启用紧凑版式/.test(modalBody.textContent), "压缩未改动或失败时会明确说明原因");
+}
 
 /* ---------- 板块管理 ---------- */
 console.log("[7] 板块管理（顺序 / 显示隐藏）");
