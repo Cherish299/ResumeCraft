@@ -50,9 +50,9 @@ await new Promise((r) => setTimeout(r, 500));
 console.log("[1] 初始渲染");
 assert($$(".tab").length === 5, "5 个选项卡（实际 " + $$(".tab").length + "）");
 assert($$("#formPane .form-section").length >= 8, "表单板块 ≥ 8 个（实际 " + $$("#formPane .form-section").length + "）");
-assert($("#templateSelect").options.length >= 10, "岗位模板 >= 10 个（实际 " + $("#templateSelect").options.length + "）");
-assert($("#styleSelect").options.length === 4, "简历风格 4 个");
-assert($("#variantSelect").options.length === 3, "版本策略 3 个");
+assert($("#formTemplateSelect").options.length >= 10, "目标岗位 >= 10 个（实际 " + $("#formTemplateSelect").options.length + "）");
+assert($("#styleSelect").options.length === 7, "简历风格 7 个");
+assert(!$("#variantSelect"), "预览页已移除版本策略");
 assert(!!$("#miniPreviewBody .page"), "迷你预览渲染出 .page");
 assert($("#miniPreviewBody .p-name").textContent.includes("姓名"), "预览显示姓名占位");
 assert(!!$("#printArea .page"), "打印区同步渲染");
@@ -140,37 +140,30 @@ const styleSel = $("#styleSelect");
 styleSel.value = "business";
 styleSel.dispatchEvent(new win.Event("change", { bubbles: true }));
 assert($("#previewBody .page").classList.contains("business"), "切换简历风格生效");
-const variantSel = $("#variantSelect");
-variantSel.value = "internet";
-variantSel.dispatchEvent(new win.Event("change", { bubbles: true }));
-await new Promise((r) => setTimeout(r, 150));
-assert($("#previewBody .page"), "切换版本策略后预览仍存在");
-const tplSel3 = $("#templateSelect");
+const tplSel3 = $("#formTemplateSelect");
 tplSel3.value = "design";
 tplSel3.dispatchEvent(new win.Event("change", { bubbles: true }));
 await new Promise((r) => setTimeout(r, 150));
-assert($("#previewBody .page").classList.contains("role-design"), "岗位模板切换会附带可见版式类");
-/* 构造更长内容，确保触发压缩逻辑 */
+assert($("#previewBody .page").classList.contains("role-design"), "目标岗位切换会附带可见版式类");
+/* 构造更长内容，确保体检页出现篇幅建议 */
 const evalInput = $('[data-path="evaluation"]');
 if (evalInput) {
-  evalInput.value = "负责多类项目推进与协作，补充很长的描述以触发压缩。\n持续跟进需求、联调、测试、上线和复盘，确保结果完整呈现。\n补充第三条用于增加整体高度。";
+  evalInput.value = "负责多类项目推进与协作，补充很长的描述以触发篇幅建议。\n持续跟进需求、联调、测试、上线和复盘，确保结果完整呈现。\n补充第三条用于增加整体高度。";
   evalInput.dispatchEvent(new win.Event("input", { bubbles: true }));
 }
 const extraInput = $('[data-path="extra"]');
 if (extraInput) {
-  extraInput.value = "这里补充额外信息，刻意写长一些，方便验证一页压缩和恢复按钮。\n继续追加第二行说明。";
+  extraInput.value = "这里补充额外信息，刻意写长一些，方便验证体检页里的版面建议。\n继续追加第二行说明。";
   extraInput.dispatchEvent(new win.Event("input", { bubbles: true }));
 }
 await new Promise((r) => setTimeout(r, 150));
-$("#btnPageCheck").click();
-await new Promise((r) => setTimeout(r, 150));
-assert($$("#toastRoot .toast").length >= 3, "一页检查触发反馈（toast）");
-const compressModal = $("#modalRoot .modal");
-const modalBody = $("#modalRoot .modal-body");
-assert(!!compressModal, "一页检查会弹出结果弹窗");
-assert(!!modalBody && modalBody.textContent.length > 0, "一页检查弹窗有可读说明");
-if (modalBody) {
-  assert(/实习经历和项目经历会保持原文|系统不会自动删改你的实习和项目内容|建议优先手动精简/.test(modalBody.textContent), "一页检查会保护核心经历并给出建议");
+$("#btnAudit").click();
+await new Promise((r) => setTimeout(r, 120));
+assert($$("#toastRoot .toast").length >= 2, "体检流程触发反馈（toast）");
+const lengthCard = Array.from($$("#auditBody .jd-evidence-card")).find((el) => el.textContent.includes("版面与长度建议"));
+assert(!!lengthCard, "体检页展示版面与长度建议");
+if (lengthCard) {
+  assert(/尽量保留实习经历和项目经历|精简辅助板块|接近一页/.test(lengthCard.textContent), "体检页会保护核心经历并给出篇幅建议");
 }
 
 /* ---------- 板块管理 ---------- */
@@ -201,7 +194,7 @@ assert(iIntern >= 0 && iEdu >= 0 && iIntern < iEdu, "预览顺序同步（" + se
 const savedSec = win.localStorage.getItem("resumeKit:state:v1");
 assert(!!savedSec && savedSec.includes('"sections"'), "板块设置已持久化到 localStorage");
 /* 切换模板保留自定义顺序 */
-const tplSel2 = $("#templateSelect");
+const tplSel2 = $("#formTemplateSelect");
 tplSel2.value = "product";
 tplSel2.dispatchEvent(new win.Event("change", { bubbles: true }));
 await new Promise((r) => setTimeout(r, 200));

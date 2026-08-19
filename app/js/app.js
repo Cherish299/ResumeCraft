@@ -482,24 +482,18 @@
     var pane = $("#formPane");
     var tpl = T[state.templateId] || T.tech;
     var variants = variantMeta();
-    var tplSelect = '<div class="form-section"><div class="form-section-head"><h2>岗位模板</h2>' +
-      '<span class="tip">决定板块默认顺序与体检关键词</span><span class="chevron">▼</span></div>' +
+    var tplSelect = '<div class="form-section"><div class="form-section-head"><h2>目标岗位</h2>' +
+      '<span class="tip">先选投递方向，再写更有针对性的内容</span><span class="chevron">▼</span></div>' +
       '<div class="form-section-body"><div class="form-grid">' +
       '<div class="form-field"><select id="formTemplateSelect">' +
       Object.keys(T).map(function (k) {
         return '<option value="' + k + '"' + (state.templateId === k ? " selected" : "") + ">" + esc(T[k].name + " · " + T[k].desc) + "</option>";
       }).join("") +
       "</select>" +
-      '<span class="hint">' + esc("当前模板「" + tpl.name + "」：切换模板不会覆盖你自定义的板块顺序与显示设置。") + "</span>" +
+      '<span class="hint">' + esc("当前目标岗位「" + tpl.name + "」：会影响示例内容、关键词体检和 AI 改写方向，但不会覆盖你自定义的板块顺序。") + "</span>" +
       "</div>" +
-      '<div class="form-field"><select id="formVariantSelect">' +
-      Object.keys(variants).map(function (k) {
-        var item = variants[k];
-        return '<option value="' + item.id + '"' + (state.variant === item.id ? " selected" : "") + ">" + esc(item.name + " · " + item.desc) + "</option>";
-      }).join("") +
-      '</select><span class="hint">完整版保留更多细节；互联网 JD 裁剪版会优先保留与 JD 相关的要点。</span></div>' +
-      '<div class="form-field full"><textarea id="jdTextInput" rows="4" placeholder="粘贴目标岗位 JD（可选）。用于互联网公司投递时做关键词裁剪、保留更相关的经历要点。">' + esc(state.jdText || "") + '</textarea>' +
-      '<span class="hint">不填也能用；填写后「互联网 JD 裁剪版」与 AI 定向改写会更贴近岗位要求。</span></div>' +
+      '<div class="form-field full"><textarea id="jdTextInput" rows="4" placeholder="粘贴目标岗位 JD（可选）。用于关键词体检、AI 改写和投递建议更贴近岗位要求。">' + esc(state.jdText || "") + '</textarea>' +
+      '<span class="hint">不填也能用；填写后体检和 AI 建议会更贴近目标岗位。</span></div>' +
       "</div></div></div></div>";
 
     var basic = '<div class="form-section" data-section="basic"><div class="form-section-head"><h2>基本信息</h2>' +
@@ -1020,6 +1014,20 @@
 
     var evidence = buildJDEvidenceMap();
     var evidenceHTML = "";
+    var targetHeight = printablePageHeight();
+    state.compactMode = false;
+    renderAllPreviews();
+    var pageHeight = previewPageHeight();
+    var lengthAdvice = [];
+    if (pageHeight > targetHeight) {
+      if (hasText(state.resume.extra)) lengthAdvice.push("先精简或删除「其他」板块");
+      if (hasText(state.resume.evaluation)) lengthAdvice.push("把「自我评价」压缩成 2-3 句");
+      if ((state.resume.education || []).some(function (item) { return hasText(item.courses); })) lengthAdvice.push("主修课程只保留最相关的 3-5 门");
+      if ((state.resume.education || []).some(function (item) { return hasText(item.honors); })) lengthAdvice.push("在校荣誉只保留最重要的 1-2 条");
+      if ((state.resume.campus || []).length) lengthAdvice.push("校园经历只保留最相关的一段");
+      if ((state.resume.research || []).length) lengthAdvice.push("科研成果只保留最贴近岗位的一条");
+      lengthAdvice.push("尽量保留实习经历和项目经历，不要优先删减核心内容");
+    }
     if (evidence) {
       function renderEvidenceGroup(title, cls, items, note) {
         if (!items.length) return '';
@@ -1057,6 +1065,11 @@
         }).join("") + "</ul>";
     }).join("");
 
+    var lengthHTML = lengthAdvice.length
+      ? '<div class="jd-evidence-card"><div class="jd-evidence-head"><h3>版面与长度建议</h3><span>预计超过一页</span></div><div class="jd-group-note">为了保护核心经历，建议先手动精简辅助板块，再重新导出 PDF。</div><ul class="issue-list">' + lengthAdvice.map(function (item, index) {
+        return '<li class="issue warn"><div class="issue-title"><span class="sev-tag warn">建议 ' + (index + 1) + '</span><span>' + esc(item) + '</span><span class="issue-section">篇幅</span></div></li>';
+      }).join('') + '</ul></div>'
+      : '<div class="jd-evidence-card"><div class="jd-evidence-head"><h3>版面与长度建议</h3><span>接近一页</span></div><div class="jd-group-note">当前版面长度基本可控，优先继续打磨表达质量和关键词证据即可。</div></div>';
     $("#auditSummary").textContent = result.summary;
     $("#auditBody").innerHTML =
       '<div class="score-card">' +
@@ -1065,7 +1078,7 @@
       '<div class="num">' + result.total + '<small> /100</small></div></div>' +
       '<div class="score-meta"><div class="score-level ' + levelCls + '">' + esc(result.passLevel) + "</div>" +
       '<div style="font-size:12.5px;color:var(--text-2)">' + esc(result.summary) + "</div>" +
-      '<div class="cat-grid">' + cats + "</div></div></div>" + evidenceHTML + groups;
+      '<div class="cat-grid">' + cats + "</div></div></div>" + lengthHTML + evidenceHTML + groups;
   }
 
   function copyReport() {
@@ -1776,20 +1789,11 @@
     };
 
     /* 预览页 */
-    $("#templateSelect").addEventListener("change", function () {
-      state.templateId = this.value;
-      renderForm(); renderAllPreviews(); saveState(true);
-    });
     $("#styleSelect").addEventListener("change", function () {
       state.style = this.value;
       renderAllPreviews(); saveState(true);
     });
-    $("#variantSelect").addEventListener("change", function () {
-      state.variant = this.value || "targeted";
-      renderForm(); renderAllPreviews(); saveState(true);
-    });
     $("#btnFillSample").onclick = fillSample;
-    $("#btnPageCheck").onclick = checkResumeOnePage;
     $("#btnCompareVersions").onclick = function () {
       var box = $("#previewCompare");
       if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1913,20 +1917,10 @@
     var savedTheme = storeGet(THEME_KEY);
     applyTheme(savedTheme || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 
-    var tplSel = $("#templateSelect");
-    tplSel.innerHTML = Object.keys(T).map(function (k) {
-      return '<option value="' + k + '"' + (state.templateId === k ? " selected" : "") + ">" + esc(T[k].name + " · " + T[k].desc) + "</option>";
-    }).join("");
     var stySel = $("#styleSelect");
-    var STYLES = [["blue", "简约蓝"], ["business", "商务灰"], ["fresh", "清新绿"], ["modern", "现代紫"]];
+    var STYLES = [["blue", "简约蓝"], ["business", "商务灰"], ["fresh", "清新绿"], ["modern", "现代紫"], ["minimal", "极简黑"], ["warm", "暖橙版"], ["slate", "蓝灰版"]];
     stySel.innerHTML = STYLES.map(function (s) {
       return '<option value="' + s[0] + '"' + (state.style === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
-    }).join("");
-    var variantSel = $("#variantSelect");
-    var variants = variantMeta();
-    variantSel.innerHTML = Object.keys(variants).map(function (k) {
-      var item = variants[k];
-      return '<option value="' + item.id + '"' + (state.variant === item.id ? " selected" : "") + ">" + esc(item.name + " · " + item.desc) + "</option>";
     }).join("");
 
     renderBuildBadge();

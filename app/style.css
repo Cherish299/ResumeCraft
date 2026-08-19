@@ -303,6 +303,30 @@ button { font-family: inherit; }
 .page.modern .p-target { background: #f5f3ff; }
 .page.modern .p-target b { color: #6d28d9; }
 .page.modern .p-sec-h .en { letter-spacing: 2px; }
+/* 主题：极简黑 */
+.page.minimal { color: #111827; }
+.page.minimal .p-name { color: #111827; letter-spacing: 1px; }
+.page.minimal .p-target { background: #fff; border: 1px solid #d1d5db; }
+.page.minimal .p-sec-h { color: #111827; font-size: 15px; }
+.page.minimal .p-sec-h::after { background: #d1d5db; }
+.page.minimal .p-bullets li::before { content: "-"; color: #6b7280; }
+/* 主题：暖橙 */
+.page.warm .p-name { color: #9a3412; }
+.page.warm .p-target { background: #fff7ed; }
+.page.warm .p-target b { color: #c2410c; }
+.page.warm .p-sec-h { color: #c2410c; }
+.page.warm .p-sec-h::after { background: #fed7aa; }
+.page.warm .p-sec { border-left: 3px solid #fdba74; padding-left: 10px; }
+.page.warm .p-bullets li::before { content: "◆"; color: #ea580c; }
+/* 主题：深色蓝灰 */
+.page.slate { color: #0f172a; }
+.page.slate .p-name { color: #0f172a; }
+.page.slate .p-target { background: #eff6ff; border-left: 4px solid #334155; }
+.page.slate .p-target b { color: #1e3a8a; }
+.page.slate .p-sec-h { color: #334155; }
+.page.slate .p-sec-h::after { background: #cbd5e1; }
+.page.slate .p-item-title { font-weight: 800; }
+.page.slate .p-bullets li::before { content: "▸"; color: #475569; }
 
 /* ========== 岗位模板可视化差异（让模板切换更直观） ========== */
 .page.role-tech .p-item-title { letter-spacing: .2px; }
