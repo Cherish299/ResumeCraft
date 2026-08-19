@@ -577,8 +577,11 @@ table.app-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
     padding: 0; gap: 16px; overflow: visible;
     break-inside: auto; page-break-inside: auto;
   }
+  #printArea .page.compact-page {
+    gap: 12px;
+  }
   /* When one-page compression was requested, make print pagination match the compact preview. */
   body.print-fit-requested #printArea .page {
-    zoom: 0.86;
+    zoom: var(--print-fit-scale, 0.94);
   }
 }

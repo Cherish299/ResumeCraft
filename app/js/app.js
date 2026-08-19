@@ -1510,6 +1510,11 @@
   function showPrintTips() {
     confirmModal("打印前小提示", "如果打印预览顶部出现时间、标题或网址，那是浏览器默认的页眉页脚，不是简历内容。请在打印设置里关闭“页眉和页脚”后再导出 PDF。", function () {
       printFitRequested = printFitRequested || !!state.compactMode;
+      var printPage = $("#printArea .page");
+      if (printFitRequested && printPage) {
+        var fit = Math.min(0.96, printablePageHeight() / Math.max(printPage.scrollHeight, 1));
+        document.documentElement.style.setProperty("--print-fit-scale", Math.max(0.82, fit).toFixed(3));
+      }
       document.body.classList.toggle("print-fit-requested", printFitRequested);
       window.print();
       setTimeout(function () {
