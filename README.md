@@ -27,14 +27,20 @@ ResumeCraft 不是一个复杂的 SaaS，也不是只会换皮肤的简历模板
 
 ## 你可以怎么用
 
-### 1. 直接双击打开
+### 1. 普通用户：直接打开网页版或单文件版
 
 | 文件 | 说明 |
 | --- | --- |
+| `index.html` | 适合 GitHub Pages 的公开入口页，普通用户打开链接后可直接进入网页版 |
 | `dist/resume-workbench.html` | 推荐使用的单文件成品，双击即可打开 |
 | `app/index.html` | 源码版页面，也可直接在浏览器中打开 |
 
 > 数据默认保存在浏览器本地 `localStorage`，关闭页面不会丢。
+
+如果你准备把它发给不会 Git、不会 DSH 的同学，推荐两种方式：
+
+- 直接部署 GitHub Pages，让用户点开链接就能用
+- 或把 `dist/resume-workbench.html` 发给对方，双击即可打开
 
 ### 2. 作为 DSH Web 插件使用
 
