@@ -149,4 +149,4 @@ resume-kit/
 
 ## License
 
-暂定使用 `MIT`，可在正式开源前再确认。
+ResumeCraft 使用 [MIT License](LICENSE)。
