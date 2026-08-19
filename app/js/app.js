@@ -265,6 +265,7 @@
   var saveTimer = null;
   var lastSavedAt = 0;
   var lastCompressionSnapshot = null;
+  var BUILD_ID = "2025-08-19-compress-fix";
 
   function saveState(force) {
     if (saveTimer && !force) return;
@@ -857,6 +858,12 @@
     if (previewPageHeight() > targetHeight) {
       state.compactMode = true;
       changes.push("启用了紧凑版式（更小字号与更紧间距）");
+      renderAllPreviews();
+    }
+
+    if (previewPageHeight() > targetHeight && state.variant !== "internet") {
+      state.variant = "internet";
+      changes.push("切换到更激进的互联网精简版策略");
       renderAllPreviews();
     }
 
@@ -1477,6 +1484,12 @@
     toast(msg || "已导入", "ok");
   }
 
+  function showPrintTips() {
+    confirmModal("打印前小提示", "如果打印预览顶部出现时间、标题或网址，那是浏览器默认的页眉页脚，不是简历内容。请在打印设置里关闭“页眉和页脚”后再导出 PDF。", function () {
+      window.print();
+    });
+  }
+
   function openBackupModal() {
     var m = openModal("备份与导出",
       '<p style="margin:0 0 6px;color:var(--text-2);font-size:12.5px">选择一种导出方式：</p>' +
@@ -1568,6 +1581,13 @@
   }
 
   /* ---------- 事件绑定 ---------- */
+
+  function renderBuildBadge() {
+    var el = $("#buildBadge");
+    if (!el) return;
+    el.textContent = BUILD_ID;
+    el.title = "如果你没看到这个 Build 编号，说明当前页面不是最新版本。";
+  }
 
   function bindEvents() {
     /* 选项卡 */
@@ -1673,8 +1693,8 @@
 
     /* 顶栏 */
     $("#btnTheme").onclick = toggleTheme;
-    $("#btnPrint").onclick = function () { window.print(); };
-    $("#btnPrint2").onclick = function () { window.print(); };
+    $("#btnPrint").onclick = showPrintTips;
+    $("#btnPrint2").onclick = showPrintTips;
     $("#btnBackup").onclick = openBackupModal;
     $("#btnImport").onclick = function () {
       var input = document.createElement("input");
@@ -1854,6 +1874,7 @@
       return '<option value="' + item.id + '"' + (state.variant === item.id ? " selected" : "") + ">" + esc(item.name + " · " + item.desc) + "</option>";
     }).join("");
 
+    renderBuildBadge();
     renderForm();
     renderTimeline();
     renderTracker();
