@@ -893,6 +893,11 @@
       openModal("压缩结果", '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">这次尝试了自动压缩，但仍未完全压到一页。你可以先看系统已经尝试过的调整：</div><ul style="margin:0;padding-left:18px;line-height:1.8">' + (failedSummary.length ? failedSummary.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join('') : '<li>本次没有找到可继续自动删减的安全内容</li>') + '</ul><div style="margin-top:10px;font-size:12px;color:var(--text-2)">由于压缩没有成功应用，所以当前内容已经自动恢复到压缩前状态。</div>');
       return false;
     }
+    if (!state.compactMode) {
+      state.compactMode = true;
+      changes.push("启用了紧凑版式（更小字号与更紧间距）");
+      renderAllPreviews();
+    }
     lastCompressionSnapshot = { resume: cloneJSON(original), variant: variantBefore, compactMode: compactBefore };
     saveState(true);
     renderForm();
