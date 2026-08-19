@@ -79,6 +79,7 @@
       resume: emptyResume(),
       templateId: "tech",
       style: "blue",
+      compactMode: false,
       variant: "targeted",
       jdText: "",
       followups: {},
@@ -211,7 +212,7 @@
     if (maxChars) {
       out = out.map(function (line) {
         if (line.length <= maxChars) return line;
-        return line.slice(0, Math.max(18, maxChars - 1)).replace(/[，,；;：:\s]+$/, "") + "…";
+        return line.slice(0, Math.max(18, maxChars)).replace(/[，,；;：:\s]+$/, "");
       });
     }
     return out.join("\n");
@@ -263,6 +264,7 @@
   var state = loadState();
   var saveTimer = null;
   var lastSavedAt = 0;
+  var lastCompressionSnapshot = null;
 
   function saveState(force) {
     if (saveTimer && !force) return;
@@ -588,7 +590,7 @@
       return map[k](r, tpl);
     }).filter(Boolean).join("");
     var photo = hasText(r.basic.photo) ? '<img class="p-photo" src="' + esc(r.basic.photo) + '" alt="">' : "";
-    return '<div class="page ' + esc(state.style) + ' ' + esc(roleClass(state.templateId)) + '">' +
+    return '<div class="page ' + esc(state.style) + ' ' + esc(roleClass(state.templateId)) + (state.compactMode ? ' compact-page' : '') + '">' +
       '<header class="p-header"><div><div class="p-name">' + esc(r.basic.name || "（姓名）") + "</div>" +
       '<div class="p-contact">' + contactParts(r).map(esc).join('<span>·</span>') + "</div></div>" + photo + "</header>" +
       body + "</div>";
@@ -760,68 +762,122 @@
     return page ? page.scrollHeight : 0;
   }
 
+  function restoreCompressedResume() {
+    if (!lastCompressionSnapshot) {
+      toast("当前没有可恢复的压缩前版本", "err");
+      return false;
+    }
+    state.resume = cloneJSON(lastCompressionSnapshot.resume);
+    state.variant = lastCompressionSnapshot.variant;
+    state.compactMode = !!lastCompressionSnapshot.compactMode;
+    renderForm();
+    renderTracker();
+    renderChecklist();
+    renderAllPreviews();
+    saveState(true);
+    lastCompressionSnapshot = null;
+    toast("已恢复到压缩前版本", "ok");
+    return true;
+  }
+
   function compressResumeToOnePage() {
     var original = cloneJSON(state.resume);
     var variantBefore = state.variant;
+    var compactBefore = !!state.compactMode;
     var candidates = [];
+    var changes = [];
 
-    ["internships", "projects", "campus"].forEach(function (key) {
+    function itemLabel(key, index) {
+      var item = state.resume[key] && state.resume[key][index];
+      if (!item) return "该条内容";
+      var title = item.company || item.name || item.org || item.title || ("第" + (index + 1) + "条");
+      if (key === "internships") return "实习经历 · " + title;
+      if (key === "projects") return "项目经历 · " + title;
+      if (key === "campus") return "校园经历 · " + title;
+      if (key === "research") return "科研成果 · " + title;
+      if (key === "education") return "教育背景 · " + title;
+      return title;
+    }
+
+    function pushIfText(key, mode, extra) {
+      var value = extra && extra.field ? (state.resume[key] && state.resume[key][extra.index] && state.resume[key][extra.index][extra.field]) : state.resume[key];
+      if (hasText(value)) candidates.push(Object.assign({ key: key, mode: mode }, extra || {}));
+    }
+
+    pushIfText("extra", "remove-single");
+    pushIfText("evaluation", "remove-single");
+    (state.resume.education || []).forEach(function (item, index) {
+      if (hasText(item.honors)) candidates.push({ key: "education", index: index, field: "honors", mode: "clear-field" });
+      if (hasText(item.courses)) candidates.push({ key: "education", index: index, field: "courses", mode: "clear-field" });
+    });
+
+    ["campus", "research", "projects", "internships"].forEach(function (key) {
+      var field = key === "research" ? "note" : "content";
       (state.resume[key] || []).forEach(function (item, index) {
-        var lines = String(item.content || "").split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-        if (lines.length > 2) {
-          candidates.push({ key: key, index: index, field: "content", mode: "drop-last" });
-        }
-        if (lines.some(function (line) { return line.length > 56; })) {
-          candidates.push({ key: key, index: index, field: "content", mode: "truncate" });
-        }
+        var text = String(item[field] || "");
+        var lines = text.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
+        if (key === "campus" && lines.length) candidates.push({ key: key, index: index, field: field, mode: "drop-last" });
+        if (lines.length > 3) candidates.push({ key: key, index: index, field: field, mode: "drop-last" });
+        if (lines.length > 2) candidates.push({ key: key, index: index, field: field, mode: "limit-two" });
+        if (lines.some(function (line) { return line.length > 56; })) candidates.push({ key: key, index: index, field: field, mode: "truncate" });
       });
     });
 
-    (state.resume.research || []).forEach(function (item, index) {
-      var lines = String(item.note || "").split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-      if (lines.length > 2) candidates.push({ key: "research", index: index, field: "note", mode: "drop-last" });
-      if (lines.some(function (line) { return line.length > 56; })) candidates.push({ key: "research", index: index, field: "note", mode: "truncate" });
-    });
-
-    if (hasText(state.resume.evaluation)) candidates.push({ key: "evaluation", mode: "shorten-single" });
-    if (hasText(state.resume.extra)) candidates.push({ key: "extra", mode: "shorten-single" });
-    (state.resume.education || []).forEach(function (item, index) {
-      if (hasText(item.courses)) candidates.push({ key: "education", index: index, field: "courses", mode: "education-list" });
-      if (hasText(item.honors)) candidates.push({ key: "education", index: index, field: "honors", mode: "education-list" });
-    });
-
     state.variant = state.variant === "detailed" ? "targeted" : state.variant;
+    state.compactMode = false;
     renderAllPreviews();
     var targetHeight = 1123;
+
     for (var i = 0; i < candidates.length && previewPageHeight() > targetHeight; i++) {
       var c = candidates[i];
-      if (c.mode === "shorten-single") {
-        state.resume[c.key] = trimBulletLines(String(state.resume[c.key] || "").replace(/[。；;]+/g, "\n"), { maxLines: 2, maxChars: 36 });
-      } else if (c.mode === "education-list") {
-        state.resume[c.key][c.index][c.field] = trimBulletLines(String(state.resume[c.key][c.index][c.field] || "").replace(/[、；;，]/g, "\n"), { maxLines: 2, maxChars: 28 }).replace(/\n/g, "、");
+      if (c.mode === "remove-single") {
+        state.resume[c.key] = "";
+        changes.push(c.key === "extra" ? "删除了「其他」板块" : "删除了「自我评价」板块");
+      } else if (c.mode === "clear-field") {
+        state.resume[c.key][c.index][c.field] = "";
+        changes.push(itemLabel(c.key, c.index) + "：清理了「" + (c.field === "honors" ? "在校荣誉" : "主修课程") + "」");
       } else {
         var text = String(state.resume[c.key][c.index][c.field] || "");
         var lines2 = text.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(Boolean);
-        if (c.mode === "drop-last" && lines2.length > 2) {
+        if (c.mode === "drop-last" && lines2.length > 1) {
           lines2.pop();
           state.resume[c.key][c.index][c.field] = lines2.join("\n");
+          changes.push(itemLabel(c.key, c.index) + "：删减了 1 条要点");
+        } else if (c.mode === "limit-two") {
+          state.resume[c.key][c.index][c.field] = trimBulletLines(text, { maxLines: 2, maxChars: 52 });
+          changes.push(itemLabel(c.key, c.index) + "：压缩为 2 条要点");
         } else if (c.mode === "truncate") {
-          state.resume[c.key][c.index][c.field] = trimBulletLines(text, { maxLines: 3, maxChars: 48 });
+          state.resume[c.key][c.index][c.field] = trimBulletLines(text, { maxLines: 2, maxChars: 42 });
+          changes.push(itemLabel(c.key, c.index) + "：缩短了较长描述");
         }
       }
       renderAllPreviews();
     }
 
     if (previewPageHeight() > targetHeight) {
+      state.compactMode = true;
+      changes.push("启用了紧凑版式（更小字号与更紧间距）");
+      renderAllPreviews();
+    }
+
+    if (previewPageHeight() > targetHeight) {
       state.resume = original;
       state.variant = variantBefore;
+      state.compactMode = compactBefore;
       renderAllPreviews();
-      toast("当前内容较多，自动压缩未能完全压到一页；建议手动删减低优先级内容", "err");
+      toast("当前内容较多，自动压缩与紧凑版式后仍未完全压到一页；建议再手动删减低优先级内容", "err");
       return false;
     }
+    lastCompressionSnapshot = { resume: cloneJSON(original), variant: variantBefore, compactMode: compactBefore };
     saveState(true);
     renderForm();
-    toast("已按一页优先自动压缩当前简历", "ok");
+    var summary = Array.from(new Set(changes)).slice(0, 4);
+    toast(state.compactMode ? "已通过内容删减 + 紧凑版式压缩到一页" : "已按一页优先自动压缩当前简历", "ok");
+    if (summary.length) {
+      var m = openModal("压缩结果", '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">本次自动压缩做了这些调整：</div><ul style="margin:0;padding-left:18px;line-height:1.8">' + summary.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join('') + '</ul>', '<button class="btn ghost restore-compress">恢复压缩前版本</button><button class="btn primary keep-compress">保留当前结果</button>');
+      $(".restore-compress", m.el).onclick = function () { m.close(); restoreCompressedResume(); };
+      $(".keep-compress", m.el).onclick = m.close;
+    }
     return true;
   }
 
