@@ -162,21 +162,15 @@ if (extraInput) {
   extraInput.dispatchEvent(new win.Event("input", { bubbles: true }));
 }
 await new Promise((r) => setTimeout(r, 150));
-$("#btnAutoCompress").click();
+$("#btnPageCheck").click();
 await new Promise((r) => setTimeout(r, 150));
-assert($$("#toastRoot .toast").length >= 3, "智能压缩触发反馈（toast）");
+assert($$("#toastRoot .toast").length >= 3, "一页检查触发反馈（toast）");
 const compressModal = $("#modalRoot .modal");
 const modalBody = $("#modalRoot .modal-body");
-const restoreBtn = $(".restore-compress", $("#modalRoot"));
-assert(!!compressModal, "智能压缩会弹出结果弹窗");
-assert(!!modalBody && modalBody.textContent.length > 0, "压缩结果弹窗有可读说明");
-if (restoreBtn) {
-  assert(true, "压缩成功时有恢复压缩前版本按钮");
-  restoreBtn.click();
-  await new Promise((r) => setTimeout(r, 120));
-  assert($$("#toastRoot .toast").some((el) => el.textContent.includes("已恢复到压缩前版本")), "恢复压缩前版本触发成功");
-} else if (modalBody) {
-  assert(/无需继续压缩|自动恢复到压缩前状态|已启用紧凑版式/.test(modalBody.textContent), "压缩未改动或失败时会明确说明原因");
+assert(!!compressModal, "一页检查会弹出结果弹窗");
+assert(!!modalBody && modalBody.textContent.length > 0, "一页检查弹窗有可读说明");
+if (modalBody) {
+  assert(/实习经历和项目经历会保持原文|系统不会自动删改你的实习和项目内容|建议优先手动精简/.test(modalBody.textContent), "一页检查会保护核心经历并给出建议");
 }
 
 /* ---------- 板块管理 ---------- */

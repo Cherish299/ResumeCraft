@@ -228,6 +228,8 @@
     ["internships", "projects", "campus", "research"].forEach(function (key) {
       (r[key] || []).forEach(function (item) {
         if (!item) return;
+        /* Never truncate core internship/project text during one-page compression. */
+        if (state.compactMode && (key === "internships" || key === "projects")) return;
         if (key === "research") item.note = trimBulletLines(item.note, { keywords: keywords, maxLines: variant === "internet" ? 2 : 3, maxChars: variant === "internet" ? 52 : 72 });
         else item.content = trimBulletLines(item.content, { keywords: keywords, maxLines: variant === "internet" ? 2 : 3, maxChars: variant === "internet" ? 52 : 72 });
       });
@@ -769,22 +771,40 @@
     return Math.floor((297 - 24) * 96 / 25.4);
   }
 
-  function restoreCompressedResume() {
-    if (!lastCompressionSnapshot) {
-      toast("当前没有可恢复的压缩前版本", "err");
-      return false;
-    }
-    state.resume = cloneJSON(lastCompressionSnapshot.resume);
-    state.variant = lastCompressionSnapshot.variant;
-    state.compactMode = !!lastCompressionSnapshot.compactMode;
-    renderForm();
-    renderTracker();
-    renderChecklist();
+  function checkResumeOnePage() {
+    state.compactMode = false;
     renderAllPreviews();
-    saveState(true);
-    lastCompressionSnapshot = null;
-    toast("已恢复到压缩前版本", "ok");
-    return true;
+    var currentHeight = previewPageHeight();
+    var targetHeight = printablePageHeight();
+    var diff = currentHeight - targetHeight;
+    var suggestions = [];
+
+    function addSuggestion(text) {
+      if (suggestions.indexOf(text) === -1) suggestions.push(text);
+    }
+
+    if (hasText(state.resume.extra)) addSuggestion("优先精简或删除「其他」板块里的补充说明");
+    if (hasText(state.resume.evaluation)) addSuggestion("优先把「自我评价」压缩成 2-3 句，不要写空话");
+    (state.resume.education || []).forEach(function (item) {
+      if (hasText(item.courses)) addSuggestion("教育背景里的「主修课程」建议只保留最相关的 3-5 门");
+      if (hasText(item.honors)) addSuggestion("教育背景里的「在校荣誉」建议只保留最重要的 1-2 条");
+    });
+    if ((state.resume.campus || []).length) addSuggestion("校园经历建议只保留与岗位最相关的一段或最有结果的一条");
+    if ((state.resume.research || []).length) addSuggestion("科研成果建议只保留和目标岗位最相关的内容");
+    addSuggestion("实习经历和项目经历属于核心内容，不建议优先删减");
+    addSuggestion("如果仍然超页，优先删减辅助板块，再考虑改写过长句子");
+
+    if (currentHeight <= targetHeight) {
+      state.compactMode = true;
+      renderAllPreviews();
+      openModal("一页检查", '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">当前内容接近一页，打印前建议开启紧凑版式并关闭浏览器页眉页脚。</div><ul style="margin:0;padding-left:18px;line-height:1.8"><li>当前不会自动修改你的简历内容</li><li>实习经历和项目经历会保持原文</li><li>如需更稳妥的一页效果，可再手动精简辅助板块</li></ul>');
+      toast("当前内容接近一页，可直接打印测试", "ok");
+      return true;
+    }
+
+    openModal("一页检查", '<div style="font-size:13px;color:var(--text-2);margin-bottom:8px">当前内容预计会超过一页，建议优先手动精简这些位置：</div><ul style="margin:0;padding-left:18px;line-height:1.8">' + suggestions.slice(0, 6).map(function (item) { return '<li>' + esc(item) + '</li>'; }).join('') + '</ul><div style="margin-top:10px;font-size:12px;color:var(--text-2)">当前比一页正文高度大约多出 ' + esc(String(Math.max(0, diff))) + ' px。为了保护核心经历，系统不会自动删改你的实习和项目内容。</div>');
+    toast("当前内容预计超过一页，已给出手动精简建议", "err");
+    return false;
   }
 
   function compressResumeToOnePage() {
@@ -819,7 +839,8 @@
       if (hasText(item.courses)) candidates.push({ key: "education", index: index, field: "courses", mode: "clear-field" });
     });
 
-    ["campus", "research", "projects", "internships"].forEach(function (key) {
+    /* 核心实习和项目内容不得自动删改，只处理低优先级校园/科研经历。 */
+    ["campus", "research"].forEach(function (key) {
       var field = key === "research" ? "note" : "content";
       (state.resume[key] || []).forEach(function (item, index) {
         var text = String(item[field] || "");
@@ -1768,7 +1789,7 @@
       renderForm(); renderAllPreviews(); saveState(true);
     });
     $("#btnFillSample").onclick = fillSample;
-    $("#btnAutoCompress").onclick = compressResumeToOnePage;
+    $("#btnPageCheck").onclick = checkResumeOnePage;
     $("#btnCompareVersions").onclick = function () {
       var box = $("#previewCompare");
       if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
