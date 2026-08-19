@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeCraft · 校招简历工作台</title>
+<link rel="stylesheet" href="style.css">
+<!--__RESUME_KIT_DATA__-->
+</head>
+<body>
+<div id="app" class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">📄</span> ResumeCraft <span class="badge">校招版</span></div>
+    <div class="topbar-actions">
+      <span id="saveStatus" class="save-status"></span>
+      <button id="btnTheme" class="btn ghost" title="切换明暗主题">🌓</button>
+      <button id="btnImport" class="btn ghost" title="从 JSON 文件恢复简历">导入</button>
+      <button id="btnBackup" class="btn ghost" title="导出含当前数据的单文件 HTML 备份">备份下载</button>
+      <button id="btnPrint" class="btn primary">打印 / 导出 PDF</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-tab="edit" class="tab active">✏️ 简历编辑</button>
+    <button data-tab="preview" class="tab">👁 简历预览</button>
+    <button data-tab="audit" class="tab">🩺 简历体检</button>
+    <button data-tab="job" class="tab">🎯 求职台</button>
+    <button data-tab="ai" class="tab">✨ AI 优化</button>
+  </nav>
+  <main class="main">
+    <section id="tab-edit" class="tab-panel active">
+      <div class="edit-layout">
+        <div class="form-pane" id="formPane"></div>
+        <div class="mini-preview">
+          <div class="mini-preview-head">
+            <span>实时预览</span>
+            <button id="btnGoPreview" class="btn small ghost">全屏预览 →</button>
+          </div>
+          <div id="miniPreviewBody" class="mini-preview-body"></div>
+        </div>
+      </div>
+    </section>
+    <section id="tab-preview" class="tab-panel">
+      <div class="preview-toolbar">
+        <label>岗位模板
+          <select id="templateSelect"></select>
+        </label>
+        <label>简历风格
+          <select id="styleSelect"></select>
+        </label>
+        <label>版本策略
+          <select id="variantSelect"></select>
+        </label>
+        <button id="btnFillSample" class="btn ghost" title="按所选岗位模板填入示例内容（标注「示例，请替换」）">填入岗位示例</button>
+        <button id="btnAutoCompress" class="btn ghost" title="按 A4 一页优先压缩低优先级信息，再缩短长要点">智能压缩到一页</button>
+        <button id="btnCompareVersions" class="btn ghost" title="对比完整版与当前 JD/投递版本的差异">对比完整版 vs JD版</button>
+        <span class="spacer"></span>
+        <button id="btnPrint2" class="btn primary">打印 / 导出 PDF</button>
+      </div>
+      <div id="previewCompare" class="preview-compare"></div>
+      <div id="previewBody" class="preview-body"></div>
+    </section>
+    <section id="tab-audit" class="tab-panel">
+      <div class="audit-head">
+        <button id="btnAudit" class="btn primary big">🩺 开始体检</button>
+        <span id="auditSummary" class="audit-summary"></span>
+        <span class="spacer"></span>
+        <button id="btnCopyReport" class="btn ghost">复制体检报告</button>
+      </div>
+      <div id="auditBody" class="audit-body"></div>
+    </section>
+    <section id="tab-job" class="tab-panel">
+      <div class="job-layout">
+        <div class="job-col">
+          <h3>📅 校招时间线</h3>
+          <div id="timeline" class="timeline"></div>
+        </div>
+        <div class="job-col job-col-wide">
+          <h3>📋 投递记录
+            <button id="btnAddApp" class="btn small">+ 添加</button>
+            <button id="btnExportApps" class="btn small ghost">导出 CSV</button>
+          </h3>
+          <div id="appTableWrap" class="app-table-wrap"></div>
+        </div>
+        <div class="job-col">
+          <h3>✅ 准备清单 <span id="checkProgress" class="check-progress"></span></h3>
+          <div id="checklist" class="checklist"></div>
+        </div>
+      </div>
+    </section>
+    <section id="tab-ai" class="tab-panel">
+      <div id="aiBody" class="ai-body"></div>
+    </section>
+  </main>
+  <div id="modalRoot"></div>
+  <div id="toastRoot" class="toast-root"></div>
+</div>
+<div id="printArea" class="print-only"></div>
+<script src="js/templates.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/builtin-single-file.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

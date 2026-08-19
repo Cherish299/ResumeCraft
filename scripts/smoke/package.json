@@ -1,0 +1,1 @@
+{"name":"smoke","private":true,"type":"module","dependencies":{"jsdom":"^24.1.3"}}

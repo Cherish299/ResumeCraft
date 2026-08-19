@@ -1,0 +1,36 @@
+{
+  "name": "dsh-resume-kit",
+  "version": "1.0.0",
+  "description": "应届生春招秋招简历工作台：结构化编辑、岗位模板、A4 实时预览、规则体检、求职台与可选 AI 优化（DSH 客户端插件）",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "default": "./dist/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "plugin",
+    "resume",
+    "简历",
+    "校招"
+  ]
+}
