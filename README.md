@@ -29,13 +29,17 @@ ResumeCraft 不是一个复杂的 SaaS，也不是只会换皮肤的简历模板
 
 ### 1. 普通用户：直接打开网页版或单文件版
 
+**在线使用：** [打开 ResumeCraft 网页版](https://cherish299.github.io/ResumeCraft/)
+
+打开网页即可使用，不需要 Git、不需要安装 DSH，也不需要注册账号。
+
 | 文件 | 说明 |
 | --- | --- |
 | `index.html` | 适合 GitHub Pages 的公开入口页，普通用户打开链接后可直接进入网页版 |
 | `dist/resume-workbench.html` | 推荐使用的单文件成品，双击即可打开 |
 | `app/index.html` | 源码版页面，也可直接在浏览器中打开 |
 
-> 数据默认保存在浏览器本地 `localStorage`，关闭页面不会丢。
+> 数据默认保存在浏览器本地 `localStorage`，关闭页面不会丢。换设备或换浏览器后不会自动同步，建议完成后使用“备份下载”保存一份 HTML 或 JSON。
 
 如果你准备把它发给不会 Git、不会 DSH 的同学，推荐两种方式：
 
