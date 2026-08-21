@@ -235,7 +235,7 @@
         else item.content = trimBulletLines(item.content, { keywords: keywords, maxLines: variant === "internet" ? 2 : 3, maxChars: variant === "internet" ? 52 : 72 });
       });
     });
-    if (variant === "internet") {
+    if (variant === "internet" && shortenCore) {
       (r.education || []).forEach(function (item) {
         if (!item) return;
         if (hasText(item.courses)) item.courses = trimBulletLines(item.courses.replace(/[、；;，]/g, "\n"), { keywords: keywords, maxLines: 2, maxChars: 36 }).replace(/\n/g, "、");
