@@ -611,11 +611,33 @@ table.app-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   #printArea { display: block !important; margin: 0; padding: 0; }
   #printArea .page {
     width: auto; min-height: auto; box-shadow: none; margin: 0;
-    padding: 0; gap: 16px; overflow: visible;
+    padding: 0; overflow: visible; display: block;
     break-inside: auto; page-break-inside: auto;
   }
   #printArea .page.compact-page {
-    gap: 12px;
+    gap: 0;
+  }
+  /* Flex containers are often kept whole by print engines; block flow lets sections cross pages naturally. */
+  #printArea .p-sec {
+    display: block; margin-bottom: 16px;
+    break-inside: auto; page-break-inside: auto;
+  }
+  #printArea .page.compact-page .p-sec { margin-bottom: 12px; }
+  #printArea .p-sec-h { margin-bottom: 6px; }
+  #printArea .p-sec-h { break-after: avoid-page; page-break-after: avoid; }
+  #printArea .p-item,
+  #printArea .p-edu-row,
+  #printArea .p-award-line,
+  #printArea .p-skill-line {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+  #printArea .p-bullets { break-inside: auto; page-break-inside: auto; }
+  #printArea .p-bullets li {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    orphans: 2;
+    widows: 2;
   }
   /* When one-page compression was requested, make print pagination match the compact preview. */
   body.print-fit-requested #printArea .page {
