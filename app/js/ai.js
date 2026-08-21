@@ -165,6 +165,37 @@
     return t.trim();
   }
 
+  /* ---------- 简历中译英 ---------- */
+
+  var SYSTEM_TRANSLATE = "你是一名专业的简历中译英翻译。任务：把用户提供的中文简历 JSON 完整翻译成英文简历 JSON。硬性要求：1）保持 JSON 的键名、结构、数组顺序完全不变；2）姓名按中文拼音音译（例如「张三」→「Zhang San」）；3）学校、公司、奖项、比赛等专有名词优先使用官方英文名，没有官方英文名时采用通用音译；4）职位、技能、课程、荣誉等使用校招简历中通行的标准英文表达；5）所有按行分隔的文本（如 content、note、evaluation、extra、courses、honors 等字段中的换行列表）逐行翻译，行数不得减少；6）保留原文中的 **加粗** 标记；7）只输出合法 JSON，不要输出任何解释、注释或 markdown 代码块。";
+
+  /** 整份简历中译英：返回英文简历 JSON 文本（供 app 层解析）。 */
+  function aiTranslate(resume, cfg, signal) {
+    return chat([
+      { role: "system", content: SYSTEM_TRANSLATE },
+      { role: "user", content: "请把下面这份中文简历 JSON 翻译为英文简历 JSON：\n" + compactResumeForTranslate(resume) }
+    ], cfg, signal);
+  }
+
+  function compactResumeForTranslate(resume) {
+    var out = {};
+    ["basic", "target", "education", "internships", "projects", "campus", "research", "awards", "skills", "evaluation", "extra"].forEach(function (k) {
+      if (resume && resume[k] !== undefined) out[k] = resume[k];
+    });
+    if (out.basic) delete out.basic.photo;
+    var s = JSON.stringify(out);
+    return s.length > 12000 ? s.slice(0, 12000) + "…（内容过长已截断）" : s;
+  }
+
+  /** 从模型输出中提取第一个 JSON 对象（容错解析）。 */
+  function extractJSON(text) {
+    var s = String(text || "").trim();
+    try { return JSON.parse(s); } catch (e) { /* try harder */ }
+    var m = s.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch (e2) { /* give up */ } }
+    return null;
+  }
+
   global.ResumeAI = {
     loadConfig: loadConfig,
     saveConfig: saveConfig,
@@ -174,6 +205,8 @@
     aiPolish: aiPolish,
     aiDiagnose: aiDiagnose,
     aiPolishWithFacts: aiPolishWithFacts,
+    aiTranslate: aiTranslate,
+    extractJSON: extractJSON,
     cleanOutput: cleanOutput,
     DEFAULT_BASE: DEFAULT_BASE,
     DEFAULT_MODEL: DEFAULT_MODEL

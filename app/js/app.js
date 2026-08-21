@@ -9,6 +9,9 @@
   var Ex = window.ResumeExport;
   var AI = window.ResumeAI;
 
+  /* 当前渲染是否为英文简历模式（由 renderResumeHTML 设置） */
+  var isEnglish = false;
+
   var STORE_KEY = "resumeKit:state:v1";
   var THEME_KEY = "resumeKit:theme";
 
@@ -86,6 +89,7 @@
       sections: { order: templateOrder(T.tech), hidden: {} },
       tracker: [],
       checklist: JSON.parse(JSON.stringify(window.RESUME_CHECKLIST_DEFAULT || [])),
+      english: { enabled: false, resume: null, updatedAt: 0 },
       updatedAt: 0
     };
   }
@@ -574,7 +578,14 @@
   }
 
   function renderResumeHTML() {
-    var r = deriveResumeVariant(state.variant);
+    isEnglish = !!(state.english && state.english.enabled);
+    var r;
+    if (isEnglish) {
+      r = cloneJSON(state.english.resume || state.resume);
+      CANONICAL_ORDER.forEach(function (k) { if (isSectionHidden(k)) delete r[k]; });
+    } else {
+      r = deriveResumeVariant(state.variant);
+    }
     var tpl = T[state.templateId] || T.tech;
     var order = sectionOrder();
     var hidden = (state.sections && state.sections.hidden) || {};
@@ -612,16 +623,24 @@
     return "";
   }
 
+  /* 英文模式下的小标签与板块标题 */
+  var EN_SECTIONS = {
+    "教育背景": "EDUCATION", "实习经历": "INTERNSHIP", "项目经历": "PROJECT",
+    "校园经历": "CAMPUS", "科研成果": "RESEARCH", "荣誉奖项": "HONORS",
+    "技能": "SKILLS", "自我评价": "SUMMARY", "其他": "OTHERS"
+  };
+  function t(zh, en) { return isEnglish ? en : zh; }
+
   function secTarget(r, tpl) {
     var t = r.target;
     if (!hasText(t.position) && !hasText(t.city) && !hasText(t.salary) && !hasText(t.availability)) return "";
     var bits = [];
     if (hasText(t.position)) bits.push('<b>' + esc(t.position) + "</b>");
-    if (hasText(t.industry)) bits.push("行业：" + esc(t.industry));
+    if (hasText(t.industry)) bits.push(t("行业：", "Industry: ") + esc(t.industry));
     if (hasText(t.city)) bits.push(esc(t.city));
     if (hasText(t.salary)) bits.push(esc(t.salary));
-    if (hasText(t.availability)) bits.push("到岗：" + esc(t.availability));
-    return '<div class="p-target">' + bits.join(" ｜ ") + "</div>";
+    if (hasText(t.availability)) bits.push(t("到岗：", "Available: ") + esc(t.availability));
+    return '<div class="p-target">' + bits.join(isEnglish ? " | " : " ｜ ") + "</div>";
   }
 
   function secEducation(r) {
@@ -632,11 +651,11 @@
       var range = [j(e.start), j(e.end)].filter(Boolean).join(" - ");
       var meta = [];
       if (hasText(e.gpa)) meta.push("GPA " + esc(e.gpa));
-      if (hasText(e.rank)) meta.push("排名 " + esc(e.rank));
+      if (hasText(e.rank)) meta.push(t("排名 ", "Rank ") + esc(e.rank));
       var lines = [];
       if (meta.length) lines.push('<div class="p-edu-line">' + meta.join(" ｜ ") + "</div>");
-      if (hasText(e.courses)) lines.push('<div class="p-edu-line">主修课程：' + esc(e.courses) + "</div>");
-      if (hasText(e.honors)) lines.push('<div class="p-edu-line">在校荣誉：' + esc(e.honors) + "</div>");
+      if (hasText(e.courses)) lines.push('<div class="p-edu-line">' + t("主修课程：", "Relevant Courses: ") + esc(e.courses) + "</div>");
+      if (hasText(e.honors)) lines.push('<div class="p-edu-line">' + t("在校荣誉：", "Honors: ") + esc(e.honors) + "</div>");
       return '<div class="p-item"><div class="p-edu-row"><span class="p-edu-main">' + head + "</span>" +
         '<span class="p-edu-meta">' + (range ? range : "") + "</span></div>" + lines.join("") + "</div>";
     });
@@ -661,7 +680,7 @@
     var items = list.map(function (it) {
       var range = [j(it.start), j(it.end)].filter(Boolean).join(" - ");
       return '<div class="p-item"><div class="p-item-head">' +
-        '<span class="p-item-title">' + esc(it.company || "（公司）") + (hasText(it.title) ? " · " + esc(it.title) : "") + "</span>" +
+        '<span class="p-item-title">' + esc(it.company || t("（公司）", "(Company)")) + (hasText(it.title) ? " · " + esc(it.title) : "") + "</span>" +
         '<span class="p-item-range">' + esc(range) + "</span></div>" + bulletsHTML(it.content) + "</div>";
     });
     return secWrap("实习经历", "INTERNSHIP", items.join(""));
@@ -676,7 +695,7 @@
       if (hasText(it.role)) sub.push(it.role);
       if (hasText(it.tech)) sub.push(it.tech);
       return '<div class="p-item"><div class="p-item-head">' +
-        '<span class="p-item-title">' + esc(it.name || "（项目）") + "</span>" +
+        '<span class="p-item-title">' + esc(it.name || t("（项目）", "(Project)")) + "</span>" +
         '<span class="p-item-range">' + esc(range) + "</span></div>" +
         (sub.length ? '<div class="p-item-sub">' + esc(sub.join(" ｜ ")) + "</div>" : "") +
         bulletsHTML(it.content) + "</div>";
@@ -690,7 +709,7 @@
     var items = list.map(function (it) {
       var range = [j(it.start), j(it.end)].filter(Boolean).join(" - ");
       return '<div class="p-item"><div class="p-item-head">' +
-        '<span class="p-item-title">' + esc(it.org || "（组织）") + (hasText(it.role) ? " · " + esc(it.role) : "") + "</span>" +
+        '<span class="p-item-title">' + esc(it.org || t("（组织）", "(Organization)")) + (hasText(it.role) ? " · " + esc(it.role) : "") + "</span>" +
         '<span class="p-item-range">' + esc(range) + "</span></div>" + bulletsHTML(it.content) + "</div>";
     });
     return secWrap("校园经历", "CAMPUS", items.join(""));
@@ -702,7 +721,7 @@
     var items = list.map(function (it) {
       var head = [];
       if (hasText(it.kind)) head.push(esc(it.kind));
-      head.push(esc(it.title || "（名称）"));
+      head.push(esc(it.title || t("（名称）", "(Title)")));
       var meta = [];
       if (hasText(it.role)) meta.push(esc(it.role));
       if (hasText(it.venue)) meta.push(esc(it.venue));
@@ -729,7 +748,7 @@
   function secSkill(r) {
     var list = r.skills || [];
     var rows = list.filter(function (s) { return hasText(s.items); }).map(function (s) {
-      return '<div class="p-skill-line"><span class="p-skill-cat">' + esc(s.category || "技能") + "</span><span>" + esc(s.items) + "</span></div>";
+      return '<div class="p-skill-line"><span class="p-skill-cat">' + esc(s.category || t("技能", "Skills")) + "</span><span>" + esc(s.items) + "</span></div>";
     });
     if (!rows.length) return "";
     return secWrap("技能", "SKILLS", rows.join(""));
@@ -746,6 +765,9 @@
   }
 
   function secWrap(title, en, inner) {
+    if (isEnglish) {
+      return '<section class="p-sec"><h3 class="p-sec-h">' + esc(EN_SECTIONS[title] || en) + "</h3>" + inner + "</section>";
+    }
     return '<section class="p-sec"><h3 class="p-sec-h">' + esc(title) + ' <span class="en">' + esc(en) + "</span></h3>" + inner + "</section>";
   }
 
@@ -999,6 +1021,72 @@
     if (printArea) printArea.innerHTML = html;
     renderVersionCompare();
   }
+
+  /* ---------- 英文简历 ---------- */
+
+  function parseEnglishJSON(text) {
+    var o = AI && AI.extractJSON ? AI.extractJSON(text) : null;
+    if (o && o.basic && typeof o.basic === "object") return o;
+    return null;
+  }
+
+  function generateEnglishResume(regen) {
+    var cfg = AI && AI.loadConfig ? AI.loadConfig() : null;
+    if (!cfg) {
+      var m = openModal("英文简历", "<p style='margin:0;font-size:13px;color:var(--text-2)'>生成英文简历需要调用 AI 翻译。请先在「<b>✨ AI 优化</b>」面板填写 DeepSeek API Key（仅保存在本机浏览器，不会上传到第三方服务器）。</p>",
+        '<button class="btn primary english-go-ai">去配置 API Key</button>');
+      $(".english-go-ai", m.el).onclick = function () { m.close(); switchTab("ai"); };
+      return;
+    }
+    if (!AI || typeof AI.aiTranslate !== "function") {
+      toast("当前环境未加载 AI 翻译模块", "err");
+      return;
+    }
+    var btn = $("#btnEnglish");
+    if (btn) { btn.disabled = true; btn.textContent = "翻译生成中…"; }
+    AI.aiTranslate(state.resume, cfg, null).then(function (text) {
+      var en = parseEnglishJSON(text);
+      if (!en) throw new Error("翻译结果解析失败，请重试");
+      state.english = { enabled: true, resume: en, updatedAt: Date.now() };
+      saveState(true);
+      renderAllPreviews();
+      updateEnglishButtons();
+      toast(regen ? "英文简历已重新翻译" : "英文简历已生成", "ok");
+    }).catch(function (err) {
+      toast((err && err.message ? err.message : "生成英文简历失败，请重试"), "err");
+      updateEnglishButtons();
+    });
+  }
+
+  function toggleEnglish() {
+    if (!state.english || !state.english.resume) { generateEnglishResume(false); return; }
+    state.english.enabled = !state.english.enabled;
+    saveState(true);
+    renderAllPreviews();
+    updateEnglishButtons();
+    toast(state.english.enabled ? "已切换到英文简历" : "已切换回中文简历", "ok");
+  }
+
+  function updateEnglishButtons() {
+    var btn = $("#btnEnglish");
+    var regen = $("#btnRetranslate");
+    if (!btn) return;
+    var has = !!(state.english && state.english.resume);
+    var on = !!(state.english && state.english.enabled);
+    btn.disabled = false;
+    btn.textContent = on ? "🌐 返回中文版" : (has ? "🌐 查看英文版" : "🌐 生成英文简历");
+    btn.title = has ? "点击切换中英文简历" : "通过 AI 翻译生成英文简历";
+    if (regen) regen.style.display = on && has ? "" : "none";
+  }
+
+  function switchTab(id) {
+    $$(".tab").forEach(function (t) { t.classList.toggle("active", t.dataset.tab === id); });
+    $$(".tab-panel").forEach(function (p) { p.classList.toggle("active", p.id === "tab-" + id); });
+    if (id === "preview") setTimeout(function () { renderAllPreviews(); fitScale($("#previewBody")); }, 30);
+  }
+
+  /* 兼容旧代码里的 showTab 调用 */
+  function showTab(id) { switchTab(id); }
 
   /* ---------- 体检 ---------- */
 
@@ -1544,6 +1632,9 @@
     state.resume = Object.assign(emptyResume(), resume);
     if (data && Array.isArray(data.tracker)) state.tracker = data.tracker;
     if (data && Array.isArray(data.checklist)) state.checklist = data.checklist;
+    if (data && data.english && data.english.resume) {
+      state.english = { enabled: !!data.english.enabled, resume: data.english.resume, updatedAt: data.english.updatedAt || Date.now() };
+    }
     renderForm(); renderTracker(); renderChecklist(); schedulePreview(); saveState(true);
     toast(msg || "已导入", "ok");
   }
@@ -1582,7 +1673,7 @@
       m.close();
     };
     $(".bk-json", m.el).onclick = function () {
-      Ex.download("简历数据.json", Ex.toJSON({ resume: state.resume, tracker: state.tracker, checklist: state.checklist }), "application/json");
+      Ex.download("简历数据.json", Ex.toJSON({ resume: state.resume, tracker: state.tracker, checklist: state.checklist, english: state.english || null }), "application/json");
       toast("JSON 已导出", "ok");
       m.close();
     };
@@ -1805,6 +1896,8 @@
       var box = $("#previewCompare");
       if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
     };
+    $("#btnEnglish").onclick = toggleEnglish;
+    $("#btnRetranslate").onclick = function () { generateEnglishResume(true); };
     $("#btnGoPreview").onclick = function () {
       $$(".tab").forEach(function (t) { t.classList.toggle("active", t.dataset.tab === "preview"); });
       $$(".tab-panel").forEach(function (p) { p.classList.toggle("active", p.id === "tab-preview"); });
@@ -1937,6 +2030,7 @@
     renderChecklist();
     renderAIBody();
     renderAllPreviews();
+    updateEnglishButtons();
     bindEvents();
 
     var boot = window.__RESUME_KIT_BOOT_DATA__;

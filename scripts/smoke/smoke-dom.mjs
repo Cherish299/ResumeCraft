@@ -53,6 +53,7 @@ assert($$("#formPane .form-section").length >= 8, "表单板块 ≥ 8 个（实�
 assert($("#formTemplateSelect").options.length >= 10, "目标岗位 >= 10 个（实际 " + $("#formTemplateSelect").options.length + "）");
 assert($("#styleSelect").options.length === 7, "简历风格 7 个");
 assert(!$("#variantSelect"), "预览页已移除版本策略");
+assert(!!$("#btnEnglish"), "预览页存在英文简历按钮");
 assert(!!$("#miniPreviewBody .page"), "迷你预览渲染出 .page");
 assert($("#miniPreviewBody .p-name").textContent.includes("姓名"), "预览显示姓名占位");
 assert(!!$("#printArea .page"), "打印区同步渲染");
