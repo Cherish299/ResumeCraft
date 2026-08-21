@@ -339,7 +339,7 @@
       { k: "title", label: "职位", type: "text", ph: "后端开发实习生", req: true },
       { k: "start", label: "开始时间", type: "month" },
       { k: "end", label: "结束时间", type: "month", now: true },
-      { k: "content", label: "工作内容（每行一个要点）", type: "textarea", full: true, ph: "负责XX模块的开发，使用XX技术解决了XX问题，使XX提升XX%。" }
+      { k: "content", label: "工作内容（每行一个要点，可用 **加粗** 强调关键词）", type: "textarea", full: true, ph: "负责 **XX模块** 的开发，使用XX技术解决了XX问题，使 **XX提升XX%**。" }
     ]},
     projects: { key: "projects", title: "项目经历", tip: "校招重点板块：背景 → 你的职责 → 难点 → 量化结果", kind: "list", fields: [
       { k: "name", label: "项目名称", type: "text", ph: "校园二手交易平台", req: true },
@@ -347,7 +347,7 @@
       { k: "tech", label: "技术栈", type: "text", ph: "Spring Boot + MySQL + Redis" },
       { k: "start", label: "开始时间", type: "month" },
       { k: "end", label: "结束时间", type: "month", now: true },
-      { k: "content", label: "项目描述（每行一个要点）", type: "textarea", full: true, ph: "项目背景…\n我负责…\n结果：QPS/耗时/用户量…" }
+      { k: "content", label: "项目描述（每行一个要点，可用 **加粗** 强调关键词）", type: "textarea", full: true, ph: "项目背景…\n我负责 **核心模块设计** …\n结果：**QPS/耗时/用户量** …" }
     ]},
     campus: { key: "campus", title: "校园经历", tip: "社团/学生会/志愿活动，同样要量化", kind: "list", fields: [
       { k: "org", label: "组织/活动", type: "text", ph: "校学生会", req: true },
@@ -643,10 +643,16 @@
     return secWrap("教育背景", "EDUCATION", items.join(""));
   }
 
+  function richTextHTML(text) {
+    var safe = esc(text || "");
+    /* Support lightweight **bold** emphasis without allowing arbitrary HTML. */
+    return safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  }
+
   function bulletsHTML(content) {
     var lines = String(content || "").split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
     if (!lines.length) return "";
-    return '<ul class="p-bullets">' + lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>";
+    return '<ul class="p-bullets">' + lines.map(function (l) { return "<li>" + richTextHTML(l) + "</li>"; }).join("") + "</ul>";
   }
 
   function secInternship(r) {
