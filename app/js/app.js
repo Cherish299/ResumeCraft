@@ -218,8 +218,10 @@
     return out.join("\n");
   }
 
-  function deriveResumeVariant(variantId) {
+  function deriveResumeVariant(variantId, options) {
     var variant = variantId || state.variant || "targeted";
+    var opts = options || {};
+    var shortenCore = !!opts.shortenCore;
     var r = cloneJSON(state.resume);
     CANONICAL_ORDER.forEach(function (k) { if (isSectionHidden(k)) delete r[k]; });
     if (variant === "detailed") return r;
@@ -228,8 +230,7 @@
     ["internships", "projects", "campus", "research"].forEach(function (key) {
       (r[key] || []).forEach(function (item) {
         if (!item) return;
-        /* Never truncate core internship/project text during one-page compression. */
-        if (state.compactMode && (key === "internships" || key === "projects")) return;
+        if (!shortenCore && (key === "internships" || key === "projects")) return;
         if (key === "research") item.note = trimBulletLines(item.note, { keywords: keywords, maxLines: variant === "internet" ? 2 : 3, maxChars: variant === "internet" ? 52 : 72 });
         else item.content = trimBulletLines(item.content, { keywords: keywords, maxLines: variant === "internet" ? 2 : 3, maxChars: variant === "internet" ? 52 : 72 });
       });
@@ -933,7 +934,7 @@
 
   function buildVersionDiff() {
     var detailed = deriveResumeVariant("detailed");
-    var targeted = deriveResumeVariant(state.variant === "detailed" ? "internet" : state.variant);
+    var targeted = deriveResumeVariant(state.variant === "detailed" ? "internet" : state.variant, { shortenCore: true });
     var sections = [
       ["internships", "实习经历", "content"],
       ["projects", "项目经历", "content"],
