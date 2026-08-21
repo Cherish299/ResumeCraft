@@ -273,7 +273,7 @@
   var lastSavedAt = 0;
   var lastCompressionSnapshot = null;
   var printFitRequested = false;
-  var BUILD_ID = "2025-08-19-compress-fix";
+  var BUILD_ID = "2026-08-21-en-resume";
 
   function saveState(force) {
     if (saveTimer && !force) return;

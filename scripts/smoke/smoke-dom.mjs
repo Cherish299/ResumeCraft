@@ -62,7 +62,7 @@ assert($$("#checklist .cl-group").length === 3, "准备清单 3 组");
 assert(!!$("#aiBody .ai-card"), "AI 面板渲染");
 assert(!!$("#btnAIDiagnose"), "AI 诊断按钮存在");
 assert(!!$("#formTemplateSelect"), "表单内模板选择器");
-assert($("#buildBadge") && $("#buildBadge").textContent.includes("2025-08-19-compress-fix"), "可见 Build 标记存在");
+assert($("#buildBadge") && $("#buildBadge").textContent.includes("2026-08-21-en-resume"), "可见 Build 标记存在");
 assert(win.__RESUME_KIT_SINGLE_FILE__ && win.__RESUME_KIT_SINGLE_FILE__.includes("<!DOCTYPE html>"), "内置单文件模板可用");
 assert(!errors.length, "无未捕获 JS 错误" + (errors.length ? "：" + errors.join(" | ") : ""));
 
