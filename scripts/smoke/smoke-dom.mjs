@@ -116,6 +116,10 @@ assert($$("#toastRoot .toast").length >= 1, "复制报告触发反馈（toast）
 console.log("[4] 求职台");
 $("#btnAddApp").click();
 assert($$("#appTableWrap tbody tr").length === 1, "添加投递记录行");
+assert(!!$("#appTableWrap select[data-k=channel]"), "渠道为下拉选项");
+const d = new Date();
+const todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+assert($("#appTableWrap input[data-k=date]").value === todayStr, "新增记录默认日期为今天");
 const appInput = $("#appTableWrap input[data-k=company]");
 appInput.value = "字节跳动";
 appInput.dispatchEvent(new win.Event("input", { bubbles: true }));

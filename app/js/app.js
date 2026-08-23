@@ -1211,6 +1211,13 @@
   /* ---------- 求职台 ---------- */
 
   var APP_STATUSES = ["待投递", "已投递", "笔试", "面试中", "Offer", "已拒绝", "放弃"];
+  var APP_CHANNELS = ["校招官网", "BOSS直聘", "智联招聘", "前程无忧", "牛客网", "内推", "宣讲会", "邮箱投递", "其他"];
+
+  /* 本地时区的今天日期 yyyy-mm-dd */
+  function todayLocal() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
 
   function renderTimeline() {
     var el = $("#timeline");
@@ -1236,12 +1243,18 @@
       var opts = APP_STATUSES.map(function (s) {
         return '<option value="' + s + '"' + (a.status === s ? " selected" : "") + ">" + s + "</option>";
       }).join("");
+      var chOpts = ['<option value="">（请选择）</option>'].concat(APP_CHANNELS.map(function (c) {
+        return '<option value="' + esc(c) + '"' + (a.channel === c ? " selected" : "") + ">" + esc(c) + "</option>";
+      })).join("");
+      if (hasText(a.channel) && APP_CHANNELS.indexOf(a.channel) < 0) {
+        chOpts += '<option value="' + esc(a.channel) + '" selected>' + esc(a.channel) + "</option>";
+      }
       return '<tr>' +
         '<td style="white-space:nowrap;color:var(--text-2)">' + (i + 1) + "</td>" +
         '<td><input data-app="' + a.id + '" data-k="company" value="' + esc(a.company) + '" placeholder="公司"></td>' +
         '<td><input data-app="' + a.id + '" data-k="position" value="' + esc(a.position) + '" placeholder="岗位"></td>' +
-        '<td><input data-app="' + a.id + '" data-k="channel" value="' + esc(a.channel) + '" placeholder="渠道"></td>' +
-        '<td><input data-app="' + a.id + '" data-k="date" value="' + esc(a.date) + '" placeholder="2025-09-01"></td>' +
+        '<td><select data-app="' + a.id + '" data-k="channel">' + chOpts + "</select></td>" +
+        '<td><input type="date" data-app="' + a.id + '" data-k="date" value="' + esc(a.date) + '" title="不填时新增默认当天"></td>' +
         '<td><select data-app="' + a.id + '" data-k="status">' + opts + "</select></td>" +
         '<td style="white-space:nowrap">' +
         (a.status === "Offer" ? '<span class="status-pill st-Offer">Offer</span> ' : "") +
@@ -1257,7 +1270,7 @@
   }
 
   function addApp() {
-    (state.tracker = state.tracker || []).push({ id: uid(), company: "", position: "", channel: "", date: "", status: "待投递" });
+    (state.tracker = state.tracker || []).push({ id: uid(), company: "", position: "", channel: "", date: todayLocal(), status: "待投递" });
     renderTracker(); saveState(true);
   }
 
